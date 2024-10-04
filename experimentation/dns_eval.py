@@ -1,6 +1,6 @@
 """ Imports """
-import whois
-import sys
+import whois  # python-whois
+import sys  # base
 
 
 def get_domain_info(domain: str) -> [str]:
