@@ -3,7 +3,7 @@ import whois  # python-whois
 import sys  # base
 
 
-def get_domain_info(domain: str) -> {str: str}:
+def get_domain_info(domain: str) -> {str}:
     """
     This function finds information about the domain using the whois tool and stores it in a list
     :param domain: The domain to query

@@ -78,4 +78,5 @@ def main(domain: str):
 
 if __name__ == '__main__':
     domain = sys.argv[1]
+    csv = sys.argv[2]
     main(domain)
