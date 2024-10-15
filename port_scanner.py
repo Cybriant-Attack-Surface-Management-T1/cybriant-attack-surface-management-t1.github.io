@@ -15,7 +15,7 @@ def scan_port(domain, port):
     return None
 
 
-# Function to scan all ports on a single domain ports 1-1024
+# Function to scan all ports on a single domain ports 1-49151 or 1-1024
 def scan_ports(domain, port_range=(1, 1024)):
     open_ports= []
     with ThreadPoolExecutor(max_workers=100) as executor:
