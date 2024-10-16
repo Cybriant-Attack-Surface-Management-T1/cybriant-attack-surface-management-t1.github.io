@@ -68,14 +68,10 @@ def get_dnssec_status(domain):
 def check_domain_squatting(domain):
     try:
         #Generates a couple of hundred or thousand permutations of domain names and singles out the registered ones.
-        result = subprocess.run(['dnstwist', '-r', domain], capture_output=True, text=True, encoding='utf-8')
+        result = subprocess.run(['dnstwist', '-r', domain], capture_output=True, text=True)
         #This finds the domains in the output.
-        squat = re.findall(r'(?<=\s)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?=\s)', result.stdout)
-        if squat:
-            #This removes the first entry in the list because it is the original domain.
-            squat.pop(0)
+        squat = result.stdout.splitlines()
 
-        # Returns the list of domain squatting threats.
         return squat
     except subprocess.SubprocessError:
         return "No threats exist"
