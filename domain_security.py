@@ -2,9 +2,10 @@ import ssl
 import socket
 import subprocess
 import csv
+import sys
 import dns.resolver
-import re
 import idna
+
 
 
 # Function to find SPF records
@@ -50,7 +51,7 @@ def get_tls_details(domain):
 
                 cert = ssock.getpeercert()
                 return ssock.version(), cert
-    except (UnicodeError, socket.gaierror):
+    except (UnicodeError, socket.gaierror, ssl.SSLCertVerificationError, TimeoutError):
         return "No TLS/SSL details"
 
 # Function to check for DNSSEC
@@ -67,13 +68,17 @@ def get_dnssec_status(domain):
 # Function to check for domain squatting
 def check_domain_squatting(domain):
     try:
-        #Generates a couple of hundred or thousand permutations of domain names and singles out the registered ones.
-        result = subprocess.run(['dnstwist', '-r', domain], capture_output=True, text=True)
-        #This finds the domains in the output.
-        squat = result.stdout.splitlines()
+        #Generates a couple of thousand permutations of domain names and singles out the registered ones.
+        result = subprocess.run(['dnstwist', '-r', domain], capture_output=True, text=True, encoding='utf-8')
 
-        return squat
-    except subprocess.SubprocessError:
+        if result.stdout:
+            #Stores the domain squatting threats.
+            squat = result.stdout.splitlines()
+
+            return squat
+        else:
+            return "No threats exist"
+    except (subprocess.SubprocessError, UnicodeError, Exception):
         return "No threats exist"
 
 # Function to convert domain to Punycode
@@ -83,26 +88,48 @@ def convert_to_punycode(domain):
     except UnicodeError:
         return "No punycode"
 
+def main():
 
-# List of domains to check
-domains = ["wcostream.tv", "google.com", "amazon.com", "microsoft.com", "example.com", "cloudflare.com", "yahoo.com", "gmail.com", "facebook.com", "kennesaw.edu"]
+    # This list will hold domains/subdomains to check
+    domains = []
 
-# Create CSV file and add header
-with open('domain_metrics.csv', mode='w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow(["Domain", "SPF Record", "DKIM Record", "DMARC Record", "TLS Details", "DNSSEC Status", "Domain Squatting Threats", "Punycode"])
+    if len(sys.argv) != 2:
+        print("Usage: python domain_security.py <filename>")
+        sys.exit(1)
+
+    filename = sys.argv[1]
+
+    try:
+        with open(filename, 'r') as file:
+            # Read lines, strip whitespace, and ignore empty lines
+            domains = [line.strip() for line in file if line.strip()]
+    except FileNotFoundError:
+        print(f"Error: File '{filename}' not found.")
+        sys.exit(1)
+
+    # This variable holds the first domain minus every thing after "." which will be a part of the csv file title.
+    csv_domain = domains[0].split(".")[0]
 
 
-    # Loop through each domain and gather metrics
-    for domain in domains:
-        spf_record = get_spf_record(domain)
-        dkim_record = get_dkim_record(domain)
-        dmarc_record = get_dmarc_record(domain)
-        tls_details = get_tls_details(domain)
-        dnssec_status = get_dnssec_status(domain)
-        domain_squatters = check_domain_squatting(domain)
-        punycode = convert_to_punycode(domain)
+    # Create CSV file and add header
+    with open(f'{csv_domain}_domain_metrics.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Domain", "SPF Record", "DKIM Record", "DMARC Record", "TLS Details", "DNSSEC Status", "Domain Squatting Threats", "Punycode"])
 
-        # Write to CSV
-        writer.writerow(
-            [domain, spf_record, dkim_record, dmarc_record, tls_details, dnssec_status, domain_squatters, punycode])
+
+        # Loop through each domain and gather metrics
+        for domain in domains:
+            spf_record = get_spf_record(domain)
+            dkim_record = get_dkim_record(domain)
+            dmarc_record = get_dmarc_record(domain)
+            tls_details = get_tls_details(domain)
+            dnssec_status = get_dnssec_status(domain)
+            domain_squatters = check_domain_squatting(domain)
+            punycode = convert_to_punycode(domain)
+
+            # Write to CSV
+            writer.writerow(
+                [domain, spf_record, dkim_record, dmarc_record, tls_details, dnssec_status, domain_squatters, punycode])
+
+if __name__ == "__main__":
+    main()
