@@ -1,3 +1,7 @@
 Domain,Open Ports
 google.com,"80, 443"
+<<<<<<< HEAD
 mossery.co,"80, 443, 2052, 2053, 2082, 2083, 2086, 2087, 2095, 2096, 8080, 8443, 8880"
+=======
+mossery.co,"80, 443"
+>>>>>>> 7a37a5a7aa46ccc9b65ea6d671e90c4460f08bdd

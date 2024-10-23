@@ -4,10 +4,11 @@ from datetime import datetime
 
 """
     -This function will take input from a text file
-        file.txt: contains list of domains and subdomains
+        domains.txt: contains list of domains and subdomains
+
     -The script will be connected to our google cloud
     
-    -Each port listed on the txt file will be scanned with ports 1-12,000
+    -Each port listed on the txt file will be scanned from all ports
 
     -Aggregate this data and place it in a formatted csv file
         The format: 
@@ -71,9 +72,9 @@ def main():
     # Write results to CSV
     with open(csv_filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['Domain', 'Open Ports'])
+        writer.writerow(['Domain','Host IP','Status', 'Open Ports'])
         for domain, ports in results:
-            writer.writerow([domain, ', '.join(map(str, ports))])
+            writer.writerow([domain,','.join({nm[host].hostname()}),','.join({nm[host].state()}),  ', '.join(map(str, ports))])
 
     print(f"Scanning complete. Results saved to {csv_filename}.")
 
