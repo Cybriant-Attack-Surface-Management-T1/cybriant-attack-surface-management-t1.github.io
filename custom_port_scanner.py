@@ -1,6 +1,7 @@
 import nmap # base
 import csv # base
 from datetime import datetime
+from urllib.parse import urlparse  # Import to help extract the root domain
 
 """
     -This function will take input from a text file
@@ -11,27 +12,38 @@ from datetime import datetime
     -Each port listed on the txt file will be scanned from all ports
 
     -Aggregate this data and place it in a formatted csv file
-        The format: 
+        The format: domain, root domain, host ip, host state, open ports list
         
     -This function will output the information into a new csv file
-        ports.csv: containes list of domains and open ports
+        ports.csv: contains list of domains and their open ports
     
 """
+
+def get_root_domain(domain):
+    # Parse the domain and extract the root domain
+    parsed_uri = urlparse(f'http://{domain}')
+    return parsed_uri.netloc
+
 
 def scan_ports(domain):
     # Create a PortScanner instance
     nm = nmap.PortScanner()
 
     try:
-        # Scan the target for open ports
+        # Scan the domain for open ports
         print(f"Scanning {domain}...")
-        nm.scan(domain, arguments='-p-')  # Scan ports 1 to 1024
+        nm.scan(domain, arguments='-p-')  # Scan all ports
+
 
         # Check if the scan was successful
         if nm.all_hosts():
             for host in nm.all_hosts():
-                print(f'\nHost: {host} ({nm[host].hostname()})')
-                print(f'State: {nm[host].state()}')
+                host_state = nm[host].state()
+                root_domain = get_root_domain(domain)
+                host_ip={host}
+
+                print(f'\nHost: {host} ({root_domain})')
+                print(f'State: {host_state}')
 
                 # Get open ports
                 open_ports = []
@@ -40,30 +52,38 @@ def scan_ports(domain):
                     for port in sorted(lport):
                         if nm[host][proto][port]['state'] == 'open':
                             open_ports.append(port)
+
                 if open_ports:
                     print(f'Open ports: {open_ports}')
                 else:
-                    print('No open ports found.')    
+                    print('No open ports found.')
+
+                # Return host info and open ports
+                return host_ip, root_domain, host_state, open_ports
+            
         else:
             print(f"No hosts found for {domain}.")
+            return None, None, None, []
+        
     except Exception as e:
         print(f"Error scanning {domain}: {str(e)}")
+        return None, None, None, []
 
-    return open_ports
-
+    
 
 def main():
-
-    domains = []
     # Read the domains from a file
     with open('sample_domains.txt', 'r') as f:
         domains = [line.strip() for line in f.readlines()]
 
     results = []
 
+    # Scan each domain
     for domain in domains:
-        open_ports = scan_ports(domain)
-        results.append((domain, open_ports))
+        root_domain, host_ip, host_state, open_ports = scan_ports(domain)
+        # Only add results if a valid host was found
+        if root_domain is not None:
+            results.append((domain, host_ip, root_domain, host_state, open_ports))
 
     # Create CSV filename with today's date
     date_str = datetime.now().strftime("%m_%d_%Y")
@@ -72,9 +92,9 @@ def main():
     # Write results to CSV
     with open(csv_filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['Domain','Host IP','Status', 'Open Ports'])
-        for domain, ports in results:
-            writer.writerow([domain,','.join({nm[host].hostname()}),','.join({nm[host].state()}),  ', '.join(map(str, ports))])
+        writer.writerow(['Domain','Root Domain','Host IP','State', 'Open Ports'])
+        for domain, host_ip, root_domain, host_state, ports in results:
+            writer.writerow([domain, host_ip, root_domain, host_state,', '.join(map(str, ports))])
 
     print(f"Scanning complete. Results saved to {csv_filename}.")
 
