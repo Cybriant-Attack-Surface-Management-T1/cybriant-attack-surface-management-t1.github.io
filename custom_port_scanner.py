@@ -32,7 +32,7 @@ def scan_ports(domain):
     try:
         # Scan the domain for open ports
         print(f"Scanning {domain}...")
-        nm.scan(domain, arguments='-p-')  # Scan all ports
+        nm.scan(domain, arguments='-p-')  # Scan all ports, "-P- means all ports"
 
 
         # Check if the scan was successful
